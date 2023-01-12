@@ -20,7 +20,7 @@ class Book(models.Model):
     user=models.ForeignKey(User, related_name='books', null=True, on_delete=models.SET_NULL)
     author=models.CharField(max_length=250)
     title=models.CharField(max_length=250)
-    image=models.ImageField(blank=True)
+    image=models.CharField(max_length=250, null=True, blank=True)
     description=models.TextField()
     price=models.FloatField(null=True, blank=True)
     discount_price=models.FloatField(null=True, blank=True)
@@ -34,28 +34,8 @@ class Book(models.Model):
         return self.title
 
     def rating(self):
-        pass
+       return  None
 
-class OrderBook(models.Model):
-    id=models.UUIDField(editable=False, default=uuid.uuid4, primary_key=True)
-    user=models.ForeignKey(User, on_delete=models.CASCADE, related_name='book_order')
-    book=models.ForeignKey(Book, on_delete=models.CASCADE, related_name='orders')
-    qty=models.IntegerField(default=1)
-    date_created=models.DateTimeField(auto_now_add=True)
-    completed=models.BooleanField(default=False)
-
-    def sub_total_price(self):
-        total=self.book.price
-        if self.book.discount_price:
-            total=self.book.discount_price
-        return total
-
-class Order(models.Model):
-    id=models.UUIDField(editable=False, default=uuid.uuid4, primary_key=True)
-    user=models.ForeignKey(User, on_delete=models.CASCADE, related_name='cart')
-    completed=models.BooleanField(default=False)
-    order_book=models.ManyToManyField(OrderBook, related_name='order')
-    date_created=models.DateTimeField(auto_now_add=True)
 
 
 
