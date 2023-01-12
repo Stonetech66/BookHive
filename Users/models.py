@@ -1,12 +1,10 @@
 from django.db import models
-# Create your models here.
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Permission
 import uuid
 from django.contrib import auth
 from django.core.exceptions import PermissionDenied
 
-# Create your models here.
 class UserManager(BaseUserManager):
     def create_user(self, email, password, first_name:str=None, last_name:str=None,):
 
@@ -41,6 +39,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name=models.CharField(max_length=100, null=True)
     id= models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4)
     is_active= models.BooleanField(default=True)
+    bio=models.TextField(blank=True, null=True)
+    pic=models.CharField(max_length=250, null=True, blank=True)
     is_staff= models.BooleanField(default=False)
     is_superuser=models.BooleanField(default=False)
     objects= UserManager()

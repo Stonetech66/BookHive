@@ -1,14 +1,22 @@
 import graphene
+from graphene_file_upload.scalars import Upload
 from graphene_django import DjangoObjectType
 from .models import Book, Category
 from Users.models import User
 from graphql import GraphQLError
+from graphene_django.filter import DjangoFilterConnectionField
+from ..utils import validate_book, validate_image
+
 
 
 class BookType(DjangoObjectType):
     rating=graphene.String(source='rating')
     class Meta:
         model=Book 
+        filter_fields=("title", "author", "category")
+        interfaces=(graphene.relay.Node,)
+    
+    
 
 
 
@@ -20,23 +28,25 @@ class UserType(DjangoObjectType):
 class CategoryType(DjangoObjectType):
     class Meta:
         model=Category
+        filter_fields=["name", "books"]
+        interface=(graphene.relay.Node)
 
 
 class Query(graphene.ObjectType):
-    books=graphene.List(BookType)
-    book=graphene.Field(BookType, id=graphene.String(required=True))
-    my_books=graphene.List(BookType, username=graphene.String(required=True))
-    category=graphene.Field(CategoryType, id=graphene.Int(required=True))
+    books=DjangoFilterConnectionField(BookType)
+    book=graphene.relay.Node(BookType)
+    categories=DjangoFilterConnectionField(CategoryType)
+    category=graphene.relay.Node(CategoryType)
 
      
     def resolve_books(root, info):
-        return Book.objects.all()
-    def resolve_book(root, info, id):
-        return Book.objects.prefetch_related("category").select_related("author").get(id=id)
-    def resolve_my_books(root, info, username):
-        return Book.objects.filter(user__username=username).prefetch_related("category").select_related("author")
+        return Book.objects.all().select_related("author")
+
+    def resolve_book(root, self, id):
+        return Book.objects.get(id=id).select_related("author")
+    
     def resolve_category(root, info, id):
-        return Category.objects.get(id=id)
+        return Category.objects.get(id=id).prefetch_related("books")
 
 
 class booktype(graphene.Enum):
@@ -49,18 +59,27 @@ class CreateBook(graphene.Mutation):
         title=graphene.String(required=True)
         description=graphene.String(required=True)
         category=graphene.List(graphene.ID)
-        free=graphene.Boolean(default_value=False)
+        image=Upload(required=True)
+        book_file=Upload()
+        free=graphene.Boolean(required=True)
         price=graphene.Float()
         discount_price=graphene.Float()
         booktype=booktype()
 
     
     book=graphene.Field(BookType)
-    def mutate(root, info,image=None, price=None, discount_price=None,  **kwargs):
+    def mutate(root, info,image, price=None, discount_price=None,book_file=None, **kwargs):
         try:
             c=[]
             for i in kwargs['category']:
                 c.append(Category.objects.get(id=i))
+            if book_file:
+                if validate_book(book_file):
+                    pass
+            if validate_image(image):
+                #upload image to s3 bucket
+                pass
+            #Upload in the background make use of s3 bucket
             book=Book.objects.create(author=kwargs['author'], title=kwargs['title'], 
             description=kwargs['description'],is_free=kwargs['free'], 
             price=price, discount_price=discount_price,
@@ -82,11 +101,13 @@ class UpdateBook(graphene.Mutation):
         category=graphene.List(graphene.ID)
         free=graphene.Boolean()
         price=graphene.Float()
+        book_file=Upload()
+        image=Upload()
         discount_price=graphene.Float()
         booktype=booktype()
     book=graphene.Field(BookType)
-    def mutate(root, info,id, author, title, description, category,booktype, free, price=None, discount_price=None, ):
-        book=Book.objects.get(id=id)
+    def mutate(root, info,id, author, title, description, category,booktype, free, book_file=None, image=None,price=None, discount_price=None, ):
+        book=Book.objects.get(id=id) 
         c=[]
         for i in category:
             c.append(Category.objects.get(id=i))
@@ -106,13 +127,13 @@ class DeleteBook(graphene.Mutation):
     class Arguments:
         id=graphene.ID()
 
-    response=graphene.String()
+    success=graphene.Boolean()
 
     def mutate(root, info, id):
         book=Book.objects.get(id=id)
         book.delete()
         book.save()
-        return DeleteBook(response="Book sucessfuly deleted")
+        return DeleteBook(success=True)
 
 class Mutations(graphene.ObjectType):
     create_book=CreateBook.Field()
