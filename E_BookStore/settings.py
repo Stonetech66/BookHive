@@ -46,6 +46,7 @@ INSTALLED_APPS = [
 
 AUTH_USER_MODEL='Users.User'
 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -55,7 +56,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
+AUTHENTICATION_BACKENDS=[
+    'graphql_jwt.backends.JSONWebTokenBackend',
+    'django.contib.auth.backends.ModelBackend',
+]
 ROOT_URLCONF = 'E_BookStore.urls'
 
 TEMPLATES = [
@@ -118,7 +122,7 @@ USE_I18N = True
 
 USE_TZ = True
 
-GRAPHENE={"ATOMIC_MUTATIONS":True, "SCHEMA":'E_BookStore.schema.schema'}
+GRAPHENE={"ATOMIC_MUTATIONS":True, "SCHEMA":'E_BookStore.schema.schema', "MIDDLEWARE":['graphql_jwt.middleware.JSONWEBTokenBackend',]}
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 

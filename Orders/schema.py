@@ -1,4 +1,5 @@
 import graphene
+from graphql import GraphQLError
 from graphene_django import DjangoObjectType
 from .models import OrderBook, Order, Book
 from django.shortcuts import get_object_or_404
@@ -26,33 +27,37 @@ class AddBookToCart(graphene.Mutation):
     class Arguments:
         qty=graphene.Int(required=True)
         id=graphene.ID()
-    success=graphene.BooleanField()
-    failed=graphene.BooleanField()
+
 
     def mutate(root, info, qty, id):
-        book=get_object_or_404(Book, id=id)
-        o, created=OrderBook.objects.get_or_create(book=book, completed=False)
-        Order=Order.objects.get_or_create(completed=False)
-        o.qty=qty
-        o.save()
-        Order.order_book.add(o)
-        Order.save()
+        try:
+            book=get_object_or_404(Book, id=id)
+            o, created=OrderBook.objects.get_or_create(book=book, completed=False)
+            Order=Order.objects.get_or_create(completed=False)
+            o.qty=qty
+            o.save()
+            Order.order_book.add(o)
+            Order.save()
+        except Exception as e:
+            raise GraphQLError(e)
 
         return  AddBookToCart(success=True, failed=False)
 
 class RemoveBook(graphene.Mutation):
     class Arguments:
         id=graphene.ID()
-    success=graphene.BooleanField()
-    failed=graphene.BooleanField()
 
+    success=graphene.Boolean()
     def mutate(root, info, qty, id):  
-        book=get_object_or_404(Book, id=id)
-        o=OrderBook.objects.get(book=book, completed=False)
-        o.delete()
-        o.save()
+        try:
+            book=get_object_or_404(Book, id=id)
+            o=OrderBook.objects.get(book=book, completed=False)
+            o.delete()
+            o.save()
+        except Exception as e:
+            raise GraphQLError(e)
 
-        return  RemoveBook(success=True, failed=False)
+        return  RemoveBook(success=True)
 
 class ClearCart(graphene.Mutation):
     response=graphene.String()

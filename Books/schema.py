@@ -2,19 +2,21 @@ import graphene
 from graphene_file_upload.scalars import Upload
 from graphene_django import DjangoObjectType
 from .models import Book, Category
+from graphql_jwt.decorators import login_required
 from Users.models import User
 from graphql import GraphQLError
 from graphene_django.filter import DjangoFilterConnectionField
-from ..utils import validate_book, validate_image
+from utils import validate_book, validate_image, upload_to_s3, download_from_s3
 
 
 
-class BookType(DjangoObjectType):
+class BookNode(DjangoObjectType):
     rating=graphene.String(source='rating')
     class Meta:
         model=Book 
-        filter_fields=("title", "author", "category")
+        filter_fields=("title", "author", "category", "book_type", "is_free")
         interfaces=(graphene.relay.Node,)
+
     
     
 
@@ -25,28 +27,24 @@ class UserType(DjangoObjectType):
         model=User
         exclude=("password",)
 
-class CategoryType(DjangoObjectType):
+class CategoryNode(DjangoObjectType):
     class Meta:
         model=Category
         filter_fields=["name", "books"]
-        interface=(graphene.relay.Node)
+        interfaces=(graphene.relay.Node,)
+    
+ 
 
 
 class Query(graphene.ObjectType):
-    books=DjangoFilterConnectionField(BookType)
-    book=graphene.relay.Node(BookType)
-    categories=DjangoFilterConnectionField(CategoryType)
-    category=graphene.relay.Node(CategoryType)
+    books=DjangoFilterConnectionField(BookNode)
+    book=graphene.relay.Node.Field(BookNode)
+    category=graphene.relay.Node.Field(CategoryNode)
+    categories=DjangoFilterConnectionField(CategoryNode)
 
-     
     def resolve_books(root, info):
-        return Book.objects.all().select_related("author")
+        return Book.objects.all().select_related("author").prefetch_related("category")
 
-    def resolve_book(root, self, id):
-        return Book.objects.get(id=id).select_related("author")
-    
-    def resolve_category(root, info, id):
-        return Category.objects.get(id=id).prefetch_related("books")
 
 
 class booktype(graphene.Enum):
@@ -66,35 +64,35 @@ class CreateBook(graphene.Mutation):
         discount_price=graphene.Float()
         booktype=booktype()
 
-    
-    book=graphene.Field(BookType)
+    book=graphene.Field(BookNode)
     def mutate(root, info,image, price=None, discount_price=None,book_file=None, **kwargs):
         try:
             c=[]
             for i in kwargs['category']:
-                c.append(Category.objects.get(id=i))
+                    c.append(Category.objects.get(id=i))
             if book_file:
-                if validate_book(book_file):
-                    pass
-            if validate_image(image):
-                #upload image to s3 bucket
-                pass
+                if not validate_book(book_file):
+                    raise GraphQLError('invalid vook file')
+            if not validate_image(image):
+                raise GraphQLError('invalid image')
             #Upload in the background make use of s3 bucket
+            book_url=upload_to_s3(book_file)
+            image_url=upload_to_s3(image)#upload image to s3 bucket
             book=Book.objects.create(author=kwargs['author'], title=kwargs['title'], 
             description=kwargs['description'],is_free=kwargs['free'], 
             price=price, discount_price=discount_price,
-            book_type=kwargs['booktype'])
+            book_type=kwargs['booktype'], book_url=book_url, image=image_url)
             book.category.set(c)
             book.save()
         except Exception as e:
-            #raise exception
-                print(e)
+            raise GraphQLError("error occured")
+            print(e)
         return CreateBook(book=book)
 
 
 class UpdateBook(graphene.Mutation):
     class Arguments:
-        id=graphene.ID
+        id=graphene.ID()
         author=graphene.String()
         title=graphene.String()
         description=graphene.String()
@@ -105,9 +103,21 @@ class UpdateBook(graphene.Mutation):
         image=Upload()
         discount_price=graphene.Float()
         booktype=booktype()
-    book=graphene.Field(BookType)
+    book=graphene.Field(BookNode)
     def mutate(root, info,id, author, title, description, category,booktype, free, book_file=None, image=None,price=None, discount_price=None, ):
         book=Book.objects.get(id=id) 
+        if not info.context.user == book.user:
+            raise GraphQLError('You are not authorized to this')
+        if book_file:
+            if not validate_book(book_file):
+                raise GraphQLError('invalid vook file')
+            book_url=upload_to_s3(book_file)
+            book.book_url=book_url
+        if image:
+            if not validate_image(image):
+                raise GraphQLError('invalid image')
+            image_url=upload_to_s3(image)
+            book.image=image_url
         c=[]
         for i in category:
             c.append(Category.objects.get(id=i))
@@ -130,9 +140,13 @@ class DeleteBook(graphene.Mutation):
     success=graphene.Boolean()
 
     def mutate(root, info, id):
-        book=Book.objects.get(id=id)
-        book.delete()
-        book.save()
+        try:
+            book=Book.objects.get(id=id)
+
+            book.delete()
+            book.save()
+        except Exception as e:
+            raise GraphQLError(message={"error":e})
         return DeleteBook(success=True)
 
 class Mutations(graphene.ObjectType):

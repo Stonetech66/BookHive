@@ -1,4 +1,9 @@
+def upload_to_s3(file):
+    pass
 
+
+def download_from_s3(file):
+    pass
 
 
 
