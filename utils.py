@@ -3,8 +3,7 @@ import uuid
 from django.conf import settings
 from django.core.validators import validate_image_file_extension
 
-s3_resource=boto3.resource('s3', region_name=settings.AWS_REGION_NAME, aws_access_key_id=settings.AWS_ACCESS_KEY, aws_secret_access_key=settings.AWS_SECRET_KEY)
-
+s3_resource='p'
 def format_file_name(name):
     return str(uuid.uuid4().hex[:6]+ name)
 

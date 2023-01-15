@@ -3,11 +3,12 @@ from .models import Address
 from Orders.models import OrderBook, Order
 from django.core.validators import validate_email
 from graphql import GraphQLError
+from graphql_jwt.decorators import login_required
 
 class AddEmailAddress(graphene.Mutation):
     class Arguments:
         id=graphene.ID(required=True, description='id of the orderbook')
-        emails=graphene.List(graphene.String())
+        emails=graphene.List(graphene.String)
     success=graphene.Boolean()
     
     def mutate(root, info, id, emails):

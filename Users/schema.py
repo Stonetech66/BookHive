@@ -3,18 +3,19 @@ from django.core.validators import validate_email
 from graphene_django import DjangoObjectType
 import graphene
 from graphql import GraphQLError
+from graphql_jwt.decorators import login_required
 
 class UserType(DjangoObjectType):
     class Meta:
         model=User
-        exclude=('password')
+        exclude=('password',)
 
 
 
 
 
 
-class Signup(graphene.ObjectType):
+class Signup(graphene.Mutation):
     class Arguments:
         email=graphene.String(required=True)
         first_name=graphene.String(required=True)
@@ -36,10 +37,13 @@ class Signup(graphene.ObjectType):
 class Query(graphene.ObjectType):
     user_details=graphene.Field(UserType)
 
+    @login_required
     def resolve_user_details(root, info):
         return info.context.user
 
 
 
-class Mutations(graphene.Mutation):
-    signup=Signup.FIeld()
+class Mutations(graphene.ObjectType):
+    signup=Signup.Field()
+
+

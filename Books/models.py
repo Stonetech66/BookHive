@@ -38,7 +38,12 @@ class Book(models.Model):
 
 
 
-
+class Rating(models.Model):
+    user=models.ForeignKey(User, related_name='ratings', on_delete=models.CASCADE)
+    book=models.ForeignKey(Book, related_name='ratings', on_delete=models.CASCADE)
+    rating=models.IntegerField(default=0)
+    review=models.TextField(null=True, blank=True)
+    date_created=models.DateTimeField(auto_now_add=True)
 
 
 

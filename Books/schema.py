@@ -66,6 +66,7 @@ class CreateBook(graphene.Mutation):
         booktype=booktype()
 
     book=graphene.Field(BookNode)
+    @login_required
     def mutate(root, info,image, price=None, discount_price=None,book_file=None, **kwargs):
         try:
             c=[]
@@ -86,7 +87,7 @@ class CreateBook(graphene.Mutation):
             book=Book.objects.create(author=kwargs['author'], title=kwargs['title'], 
             description=kwargs['description'],is_free=kwargs['free'], 
             price=price, discount_price=discount_price,
-            book_type=kwargs['booktype'], book_url=book_url, image=image_url)
+            book_type=kwargs['booktype'], book_url=book_url, image=image_url, user=info.context.user)
             book.category.set(c)
             book.save()
         except Exception as e:
@@ -108,6 +109,7 @@ class UpdateBook(graphene.Mutation):
         discount_price=graphene.Float()
         booktype=booktype()
     book=graphene.Field(BookNode)
+    @login_required
     def mutate(root, info,id, author, title, description, category,booktype, free, book_file=None, image=None,price=None, discount_price=None, ):
         book=Book.objects.get(id=id) 
         if not info.context.user == book.user:
@@ -147,10 +149,12 @@ class DeleteBook(graphene.Mutation):
 
     success=graphene.Boolean()
 
+    @login_required
     def mutate(root, info, id):
         try:
             book=Book.objects.get(id=id)
-
+            if not info.context.user == book.user:
+                raise GraphQLError('Permission denied')
             book.delete()
             book.save()
         except Exception as e:
