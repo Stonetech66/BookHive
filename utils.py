@@ -1,18 +1,35 @@
+import boto3
+import uuid
+from django.conf import settings
+from django.core.validators import validate_image_file_extension
+
+s3_resource=boto3.resource('s3', region_name=settings.AWS_REGION_NAME, aws_access_key_id=settings.AWS_ACCESS_KEY, aws_secret_access_key=settings.AWS_SECRET_KEY)
+
+def format_file_name(name):
+    return str(uuid.uuid4().hex[:6]+ name)
+
+
 def upload_to_s3(file):
-    pass
-
-
-def download_from_s3(file):
-    pass
-
-
+    try:
+        file_name=format_file_name(file.name)
+        file.name=file_name
+        s3_resource.Bucket(settings.AWS_BUCKET_NAME).upload_file(FIlename=file, Key=file)
+        return True
+    except:
+        return False
+    
 
 def validate_image(image):
-    if not image.endswith('.png' or '.jpg') or image.size >500000:
-        return None
-    return image
+    try:
+        validate_image_file_extension(image)
+        if image.size > settings.IMAGE_FILE_MAX_SIZE:
+            return False
+        return image
+    except:
+        return False
+
 
 def validate_book(book):
-    if  not book.endswith('.pdf' or '.docx') or book.size > 500000:
-        return None
+    if  not book.endswith('.pdf' or '.docx') or book.size > settings.BOOK_FILE_MAX_SIZE:
+        return False
     return book

@@ -1,7 +1,8 @@
 import graphene
 from .models import Address
 from Orders.models import OrderBook, Order
-
+from django.core.validators import validate_email
+from graphql import GraphQLError
 
 class AddEmailAddress(graphene.Mutation):
     class Arguments:
@@ -10,6 +11,12 @@ class AddEmailAddress(graphene.Mutation):
     success=graphene.Boolean()
     
     def mutate(root, info, id, emails):
+        try:
+            for i in emails:
+                validate_email(i)
+        except:
+            raise GraphQLError('invalid email provided')
+
         o=OrderBook.objects.select_related("book__book_type").get(id=id, user=info.context.user, completed=False)
         if o.book.book_type != "e_book" or o.qty != emails:
             raise Exception("invalid number of email provided")
@@ -34,3 +41,7 @@ class AddShippingAddress(graphene.Mutation):
         o.save()
         return AddShippingAddress(success=True)
 
+
+class Mutation(graphene.ObjectType):
+    add_email_address=AddEmailAddress.Field()
+    add_shipping_address=AddShippingAddress.Field()

@@ -4,10 +4,12 @@ from graphene_django import DjangoObjectType
 from .models import OrderBook, Order, Book
 from django.shortcuts import get_object_or_404
 from Shipments.models import Address
+
 class OrderBookType(DjangoObjectType):
     total_price=graphene.FloatField(source='total_price')
     class Meta:
         model=OrderBook
+        interfaces=(graphene.relay.Node,)
 
 
     
@@ -19,6 +21,8 @@ class OrderType(DjangoObjectType):
     class Meta:
         model=Order
         fields=['order_type', 'sub_total_price', ]
+        interfaces=(graphene.relay.Node,)
+        exclude=('payments')
 
 
 
@@ -78,6 +82,9 @@ class Checkout(graphene.Mutation):
         o=Order.objects.get(user=info.context.user, ordered=False)
         charge=o.get_total_price()
         return Checkout(payment_url="https://", amount_to_be_charged=charge)
+    
+
+
 
 
 class Mutations(graphene.Mutation):
@@ -90,7 +97,10 @@ class Mutations(graphene.Mutation):
 
 class Query(graphene.ObjectType):
     cart=graphene.relay.Node(OrderType)
+    order_history=graphene.ConnectionField(OrderType)
 
     def resolve_cart(root, info):
-        o, created= Order.objects.prefetch_related("order_book").get(user=info.context.user, completed=False)
+        o, created= Order.objects.prefetch_related("order_book").get_or_create(user=info.context.user, completed=False)
         return o
+    def resolve_order_history(root, info):
+        return Order.objects.get(user=info.context.user, completed=True)

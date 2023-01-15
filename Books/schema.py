@@ -6,7 +6,8 @@ from graphql_jwt.decorators import login_required
 from Users.models import User
 from graphql import GraphQLError
 from graphene_django.filter import DjangoFilterConnectionField
-from utils import validate_book, validate_image, upload_to_s3, download_from_s3
+from utils import validate_book, validate_image, upload_to_s3
+
 
 
 
@@ -72,12 +73,16 @@ class CreateBook(graphene.Mutation):
                     c.append(Category.objects.get(id=i))
             if book_file:
                 if not validate_book(book_file):
-                    raise GraphQLError('invalid vook file')
+                    raise GraphQLError('invalid book file')
             if not validate_image(image):
                 raise GraphQLError('invalid image')
             #Upload in the background make use of s3 bucket
             book_url=upload_to_s3(book_file)
-            image_url=upload_to_s3(image)#upload image to s3 bucket
+            if not book_url:
+                raise GraphQLError('Failed to upload file')
+            image_url=upload_to_s3(image)
+            if not image_url:
+                raise GraphQLError('Failed to upload image')
             book=Book.objects.create(author=kwargs['author'], title=kwargs['title'], 
             description=kwargs['description'],is_free=kwargs['free'], 
             price=price, discount_price=discount_price,
@@ -85,8 +90,7 @@ class CreateBook(graphene.Mutation):
             book.category.set(c)
             book.save()
         except Exception as e:
-            raise GraphQLError("error occured")
-            print(e)
+            raise GraphQLError(e)
         return CreateBook(book=book)
 
 
@@ -110,13 +114,17 @@ class UpdateBook(graphene.Mutation):
             raise GraphQLError('You are not authorized to this')
         if book_file:
             if not validate_book(book_file):
-                raise GraphQLError('invalid vook file')
+                raise GraphQLError('invalid book file')
             book_url=upload_to_s3(book_file)
+            if not book_url:
+                raise GraphQLError('Failed to upload file')
             book.book_url=book_url
         if image:
             if not validate_image(image):
                 raise GraphQLError('invalid image')
             image_url=upload_to_s3(image)
+            if not image_url:
+                raise GraphQLError('failed to upload image')
             book.image=image_url
         c=[]
         for i in category:
