@@ -37,15 +37,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'graphene_django',
+    'graphene_django','rest_framework',
     'Users.apps.UsersConfig',
     'Books.apps.BooksConfig',
     'Orders.apps.OrdersConfig',
-    'Shipments.apps.ShipmentsConfig'
+    'Shipments.apps.ShipmentsConfig',
+    'Payments.apps.PaymentsConfig'
 ]
 
 AUTH_USER_MODEL='Users.User'
-
+EMAIL_BACKEND= 'django.core.mail.backends.console.EmailBackend'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -58,7 +59,7 @@ MIDDLEWARE = [
 ]
 AUTHENTICATION_BACKENDS=[
     'graphql_jwt.backends.JSONWebTokenBackend',
-    'django.contib.auth.backends.ModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 ROOT_URLCONF = 'E_BookStore.urls'
 
@@ -122,7 +123,9 @@ USE_I18N = True
 
 USE_TZ = True
 
-GRAPHENE={"ATOMIC_MUTATIONS":True, "SCHEMA":'E_BookStore.schema.schema', "MIDDLEWARE":['graphql_jwt.middleware.JSONWEBTokenBackend',]}
+GRAPHENE={"ATOMIC_MUTATIONS":True, 
+"SCHEMA":'E_BookStore.schema.schema',
+ "MIDDLEWARE":['E_BookStore.middleware.JSONWebTokenMiddleware',]}
 BOOK_FILE_MAX_SIZE=700000000
 IMAGE_FILE_MAX_SIZE=738390
 AWS_BUCKET_NAME=config('AWS_BUCKET_NAME')
@@ -139,3 +142,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+JWT_AUTH_HEADER_PREFIX= "Bearer"

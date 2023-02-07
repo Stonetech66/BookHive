@@ -19,8 +19,11 @@ from graphene_django.views import GraphQLView
 from .schema import schema
 from graphene_file_upload.django import FileUploadGraphQLView
 from django.views.decorators.csrf import csrf_exempt
+from Payments.views import PaystackWebhook
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('graphql', csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True)))
+    path('graphql', csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
+    path('a/', PaystackWebhook.as_view())
 ]

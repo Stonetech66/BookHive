@@ -29,10 +29,12 @@ class Signup(graphene.Mutation):
         except:
             raise GraphQLError('invalid email')
 
-        user=User(first_name=kwargs['first_name'], last_name=kwargs['last_name'], email=kwargs['email'])
-        user.set_password(kwargs['password'])
-        user.save()
-        return Signup(user=user)
+        user, created=User.objects.get_or_create(first_name=kwargs['first_name'], last_name=kwargs['last_name'], email=kwargs['email'])
+        if created:
+            user.set_password(kwargs['password'])
+            user.save()
+            return Signup(user=user)
+        raise GraphQLError("user with this email already exists")
 
 class Query(graphene.ObjectType):
     user_details=graphene.Field(UserType)

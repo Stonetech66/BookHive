@@ -4,15 +4,15 @@ import uuid
 from django.core.exceptions import ValidationError
 
 _type=[
-    ("e-book", "e-book"), 
-    ("hard-book", "hard-book")
+    ("e_book", "e_book"), 
+    ("hard_book", "hard_book")
 ]
-class Category(models.Model):
+class Genre(models.Model):
     name=models.CharField(unique=True, max_length=250)
 
     def clean(self):
-        if Category.objects.filter(name__iexact=self.name):
-            raise ValidationError("Category already exists")
+        if Genre.objects.filter(name__iexact=self.name):
+            raise ValidationError("Genre already exists")
 
 
 class Book(models.Model):
@@ -25,25 +25,28 @@ class Book(models.Model):
     price=models.FloatField(null=True, blank=True)
     discount_price=models.FloatField(null=True, blank=True)
     is_free=models.BooleanField(default=False)
-    book_url=models.URLField(null=True, blank=True)
-    category=models.ManyToManyField(Category, related_name='books')
+    book_url=models.CharField(null=True, blank=True, max_length=100)
+    book_file_name=models.CharField(null=True, max_length=100)
+    genre=models.ManyToManyField(Genre, related_name='books')
     book_type=models.CharField(choices=_type, max_length=250)
     date_uploaded=models.DateTimeField(auto_now_add=True)
+    copies_sold=models.IntegerField(default=0)
 
     def __str__(self):
         return self.title
 
-    def rating(self):
-       return  None
 
 
 
 class Rating(models.Model):
     user=models.ForeignKey(User, related_name='ratings', on_delete=models.CASCADE)
     book=models.ForeignKey(Book, related_name='ratings', on_delete=models.CASCADE)
-    rating=models.IntegerField(default=0)
+    rating=models.IntegerField()
     review=models.TextField(null=True, blank=True)
     date_created=models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together= ("user", "book")
 
 
 

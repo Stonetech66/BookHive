@@ -5,12 +5,14 @@ from .models import OrderBook, Order, Book
 from django.shortcuts import get_object_or_404
 from Shipments.models import Address
 from graphql_jwt.decorators import login_required
-
+from graphene import relay
+from graphql_relay import from_global_id
+# from django.db.transaction import 
 class OrderBookType(DjangoObjectType):
     total_price=graphene.Float(source='total_price')
     class Meta:
         model=OrderBook
-        interfaces=(graphene.relay.Node,)
+        interfaces=(relay.Node,)
 
 
     
@@ -19,100 +21,81 @@ class OrderBookType(DjangoObjectType):
 
 class OrderType(DjangoObjectType):
     sub_total_price=graphene.Float(source='sub_total_price')
-    e_books=graphene.List(OrderBookType)
-    hard_copy=graphene.List(OrderBookType)
+    e_books=graphene.List(OrderBookType, source='e_books')
+    hard_copies=graphene.List(OrderBookType, source='hard_copies')
     class Meta:
         model=Order
-        interfaces=(graphene.relay.Node,)
+        interfaces=(relay.Node,)
         exclude=('payment',)
     
-    def resolve_e_books(self):
-        return self.order_books.filter(book_type='e_book')
-    
-    def resolve_hard_copy(self):
-        return self.order_books.filter(book_type='hard_copy')
 
 
 
 
 
-class AddBookToCart(graphene.Mutation):
-    class Arguments:
+
+class AddBookToCart(relay.ClientIDMutation):
+    class Input:
         qty=graphene.Int(required=True)
         id=graphene.ID()
 
     success=graphene.Boolean()
-    failed=graphene.Boolean()
     @login_required
-    def mutate(root, info, qty, id):
+    def mutate_and_get_payload(root, info, qty, id):
         try:
-            book=get_object_or_404(Book, id=id)
-            o, created=OrderBook.objects.get_or_create(book=book, completed=False)
-            Order=Order.objects.get_or_create(completed=False)
+            book=Book.objects.get(id=from_global_id(id)[1])
+            o, created=OrderBook.objects.get_or_create(book=book, completed=False, user=info.context.user)
+            order, created=Order.objects.get_or_create(completed=False, user=info.context.user)
             o.qty=qty
+            o.order=order
             o.save()
-            Order.order_book.add(o)
-            Order.save()
         except Exception as e:
             raise GraphQLError(e)
 
-        return  AddBookToCart(success=True, failed=False)
+        return  AddBookToCart(success=True)
 
-class RemoveBook(graphene.Mutation):
-    class Arguments:
+class RemoveBook(relay.ClientIDMutation):
+    class Input:
         id=graphene.ID()
 
     success=graphene.Boolean()
-    failed=graphene.Boolean()
     @login_required
-    def mutate(root, info, qty, id):  
+    def mutate_and_get_payload(root, info, id):  
         try:
-            book=get_object_or_404(Book, id=id)
-            o=OrderBook.objects.get(book=book, completed=False)
+            book=Book.objects.get(id=from_global_id(id)[1])
+            o=OrderBook.objects.get(book=book, completed=False, user=info.context.user)
             o.delete()
             o.save()
         except Exception as e:
             raise GraphQLError(e)
-
-        return  RemoveBook(success=True, failed=False)
+ 
+        return  RemoveBook(success=True)
 
 class ClearCart(graphene.Mutation):
-    response=graphene.String()
+    success=graphene.Boolean()
 
     @login_required
     def mutate(root, info):
-        cart=Order.objects.get(user=info.context.user)
-        cart.order_book =None
-        cart.save()
-        return ClearCart(response="cart cleared")
-
-
-class Checkout(graphene.Mutation):
-    class Arguments:
-        pass
-    payment_url=graphene.String()
-    amount_to_be_charged=graphene.Float()
-
-    @login_required
-    def mutate(root, info):
-        o=Order.objects.get(user=info.context.user, ordered=False)
-        charge=o.get_total_price()
-        return Checkout(payment_url="https://", amount_to_be_charged=charge)
-    
-
+        try:
+            cart=Order.objects.get(user=info.context.user, completed=False)
+            cart.order_book.delete()
+            cart.save()
+            return ClearCart(success=True)
+        except Exception as e:
+            raise GraphQLError(e)
 
 
 
 class Mutations(graphene.ObjectType):
-    add_book=AddBookToCart.Field()
-    remove_book=RemoveBook.Field()
+    add_book_to_cart=AddBookToCart.Field()
+    remove_book_from_cart=RemoveBook.Field()
     clear_cart=ClearCart.Field()
-    checkout=Checkout.Field()
+
 
 
 
 class Query(graphene.ObjectType):
-    cart=graphene.relay.Node.Field(OrderType)
+    cart=graphene.Field(OrderType)
     order_history=DjangoConnectionField(OrderType)
 
     @login_required
@@ -121,4 +104,4 @@ class Query(graphene.ObjectType):
         return o
     @login_required
     def resolve_order_history(root, info):
-        return Order.objects.get(user=info.context.user, completed=True)
+            return Order.objects.filter(user=info.context.user, completed=True)
