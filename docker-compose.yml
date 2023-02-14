@@ -24,7 +24,7 @@ services:
       DB_NAME: ${DB_NAME}
     command: bash -c "/app/entrypoint.sh"
     volumes:
-      - ./:app/
+      - ./:/app/
     depends_on:
       - db
     links:
