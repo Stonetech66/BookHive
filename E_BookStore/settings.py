@@ -131,12 +131,12 @@ USE_TZ = True
 GRAPHENE={"ATOMIC_MUTATIONS":True, 
 "SCHEMA":'E_BookStore.schema.schema',
  "MIDDLEWARE":['E_BookStore.middleware.JSONWebTokenMiddleware',]}
-BOOK_FILE_MAX_SIZE=700000000
-IMAGE_FILE_MAX_SIZE=738390
-AWS_BUCKET_NAME=config('AWS_BUCKET_NAME')
-AWS_ACCESS_KEY=config('AWS_ACCESS_KEY')
-AWS_SECRET_KEY=config('AWS_SECRET_KEY')
-AWS_REGION_NAME= config('AWS_REGION_NAME')
+BOOK_FILE_MAX_SIZE=15* 1024
+IMAGE_FILE_MAX_SIZE=5 * 1024
+AWS_BUCKET_NAME=os.getenv('AWS_BUCKET_NAME')
+AWS_ACCESS_KEY=os.getenv('AWS_ACCESS_KEY')
+AWS_SECRET_KEY=os.getenv('AWS_SECRET_KEY')
+AWS_REGION_NAME= os.getenv('AWS_REGION_NAME')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/

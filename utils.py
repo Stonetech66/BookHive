@@ -5,7 +5,7 @@ from django.core.validators import validate_image_file_extension
 
 
 
-s3='boto3.client("s3", region_name=settings.AWS_REGION_NAME, aws_access_key_id=settings.AWS_ACCESS_KEY, aws_secret_access_key=settings.ACCESS_SECRET_KEY)'
+s3=boto3.client("s3", region_name=settings.AWS_REGION_NAME, aws_access_key_id=settings.AWS_ACCESS_KEY, aws_secret_access_key=settings.ACCESS_SECRET_KEY)
 def format_file_name(name):
     return str(uuid.uuid4().hex[:6]+ name)
 

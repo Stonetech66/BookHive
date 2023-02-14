@@ -1,0 +1,9 @@
+Pillow
+requests==2.26.0
+python-decouple==3.6
+python-dotenv==0.21.0
+graphene-file-upload==1.3.0
+django-graphql-jwt==0.3.4
+Django==4.1.1
+graphene-django==3.0.0
+boto3

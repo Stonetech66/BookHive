@@ -3,28 +3,28 @@ services:
   db:
     image: postgresql
     environment:
-      - POSTGRES_USER: ${DB_USER}
-      - POSTGRES_DB: ${DB_NAME}
-      - POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - graphqldb:/var/lib/postgres/data
+      - graphqldb:/var/lib/postgresql/data
   graphql_bookstore:
     build: .
     ports:
-      -8000:8000
+      - 8000:8000
     environment:
-      - SECRET_KEY: ${SECRET_KEY}
-      - AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
-      - AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
-      - AWS_SECRET_KEY: ${AWS_SECRET_KEY}
-      - AWS_REGION_NAME: ${AWS_REGION_NAME}
-      - DB_USER: ${DB_USER}
-      - DB_PASSWORD: ${DB_PASSWORD}
-      - DB_HOST: 'db'
-      - DB_NAME: ${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+      AWS_REGION_NAME: ${AWS_REGION_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: 'db'
+      DB_NAME: ${DB_NAME}
     command: bash -c "/app/entrypoint.sh"
     volumes:
-      -./:app/
+      - ./:app/
     depends_on:
       - db
     links:
