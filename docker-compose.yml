@@ -3,9 +3,9 @@ services:
   db:
     image: postgres
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER:-root}
+      POSTGRES_DB: ${DB_NAME:-graphqldb}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
     volumes:
       - graphqldb:/var/lib/postgresql/data
   graphql_bookstore:
@@ -13,15 +13,15 @@ services:
     ports:
       - 8000:8000
     environment:
-      SECRET_KEY: ${SECRET_KEY}
-      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
-      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
-      AWS_SECRET_KEY: ${AWS_SECRET_KEY}
-      AWS_REGION_NAME: ${AWS_REGION_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      SECRET_KEY: ${SECRET_KEY:-secret}
+      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME:-a}
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY:-t}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY:-i}
+      AWS_REGION_NAME: ${AWS_REGION_NAME:-j}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
       DB_HOST: 'db'
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${DB_NAME:-graphqldb}
     command: bash -c "/app/entrypoint.sh"
     volumes:
       - ./:/app/
